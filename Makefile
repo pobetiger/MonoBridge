@@ -38,7 +38,7 @@ OBJS := $(SRCS:%.cc=%.o)
 
 
 CS_SRCS :=
-CS_SRCS += lib/libtest.cs
+CS_SRCS += lib/FileIOLib.cs
 
 LIB_FILES := $(CS_SRCS:%.cs=%.dll)
 LIB_FILES_DBG := $(addsuffix .mdb, $(LIB_FILES))
