@@ -32,12 +32,10 @@ int main(int argc, char **argv) {
     std::cout << "Launching application" << std::endl;
     bridge->Launch();
 
-    std::vector<std::string> the_files;
     std::cout << "Loading assemblies from path: " << path << std::endl;
-    /* TODO: find all the files in path */
-
-    for (int i=0; i<the_files.size(); i++) {
-        bridge->LoadAssembly(the_files[i]);
+    if (bridge->LoadAssemblyPath(path) == 0) {
+        std::cout << "FAIL: no library can be loaded" << std::endl;
+        return -1;
     }
 
     /* run the test */
