@@ -24,6 +24,7 @@ public:
     bool LoadAssembly(std::string file);
     bool LoadAssemblyPath(std::string path);
     MonoObject *CreateObject(std::string file, std::string ns, std::string name);
+    MonoObject *Create(std::string ns, std::string name);
     MonoObject *Invoke(MonoObject *obj, std::string method_name);
     // MonoObject *GetPropValue(MonoObject *obj, std::string prop_name);
     // MonoObject *SetPropValue(MonoObject *obj, std::string prop_name, MonoObject *val);

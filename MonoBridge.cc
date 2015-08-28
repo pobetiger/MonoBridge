@@ -31,7 +31,9 @@ void MonoBridge::Initialize() {
 }
 
 bool MonoBridge::Launch() {
-    MonoDomain *nextDomain = mono_domain_create_appdomain((char*)"MonoBridge-sub", NULL);
+    MonoDomain *nextDomain =
+        mono_domain_create_appdomain((char*)"MonoBridge-sub", NULL);
+
     if (!nextDomain) {
         return false;
     }
@@ -90,6 +92,9 @@ bool MonoBridge::LoadAssembly(std::string file) {
 
     std::cout << " *LOADED*" << std::endl;
 
+    // char *asm_name = mono_assembly_name_get_name(assembly);
+    // std::cout << " * Assembly name: " << asm_name << std::endl;
+
     return true;
 }
 
@@ -125,19 +130,48 @@ bool MonoBridge::LoadAssemblyPath(std::string path) {
     return b_success;
 }
 
-MonoObject *MonoBridge::CreateObject(std::string file, std::string ns, std::string name) {
+MonoObject *MonoBridge::Create(std::string ns, std::string name) {
+
+    std::string full_name = name;
+    std::cout << "looking for assembly : " << full_name << std::endl;
+
+    MonoAssemblyName *aname = mono_assembly_name_new (full_name.c_str());
+    MonoAssembly *assm = mono_assembly_loaded(aname);
+    if (!assm) {
+        std::cout << "asm/class not found" << std::endl;
+        return 0;
+    }
+
+    auto img = mono_assembly_get_image(assm);
+    MonoClass *k = mono_class_from_name(img, ns.c_str(), name.c_str());
+    if (!k) {
+        std::cout << "class not found" << std::endl;
+        return 0;
+    }
+
+    auto obj = mono_object_new(domain, k);
+    if (!obj) {
+        std::cout << "unable to create class " << ns << "." << name << std::endl;
+    }
+
+    mono_runtime_object_init(obj);
+    // instances.push_back(obj);
+    return obj;
+}
+
+MonoObject *MonoBridge::CreateObject(
+    std::string file, std::string ns, std::string name) {
     return 0;
 }
 
 
 bool MonoBridge::Stop() {
 
-    /* close all asm images in use */
-    for (auto &image_pair : images) {
-        mono_image_close(image_pair.second);
-    }
+    // NOTE: do not try to close all the opened images
+    //       that will cause the domain unload to crash because
+    //       the images have already been closed
 
-    /* TODO: clear all instances of objects */
+    /* TODO: finalize instances of objects */
 
     /* unload the app domain */
     MonoDomain *old = mono_domain_get();
@@ -148,13 +182,10 @@ bool MonoBridge::Stop() {
             // error setting to root domain, quit here
             return false;
         }
-        std::cout << "Attempting to free current AppDomain" << std::endl;
 
+        // std::cout << "Attempting to free current AppDomain" << std::endl;
         mono_domain_unload(old);
-        // run gc when we unload something
-        std::cout << "Garbage Collecting..." << std::endl;
-
-        mono_gc_collect(mono_gc_max_generation());
+        // std::cout << "Domain unloaded" << std::endl;
     }
 
     return true;
