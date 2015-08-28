@@ -2,20 +2,25 @@
 
 # Top-level declares
 CC := gcc -xc -c
-CXX := g++ -xc++ -c
+CXX := g++ -xc++ --std=c++11 -c
 LD := g++
 CS := mcs
 
-DEBUG_FLAG := -g
+DEBUG_FLAG := -g -Wall
 CS_DEBUG_FLAG := -debug
 MONO_LIB := mono-2
 
 MONO_CFLAGS := `pkg-config --cflags $(MONO_LIB)`
 MONO_LDFLAGS := `pkg-config --libs $(MONO_LIB)`
 
+BOOST_INSTALL_PATH := /opt/local/
+
+BOOST_FLAGS := -I $(BOOST_INSTALL_PATH)include/ -L $(BOOST_INSTALL_PATH)lib/
+BOOST_LIBS := -lboost_system-mt -lboost_filesystem-mt -lboost_regex-mt
+
 CFLAGS := $(DEBUG_FLAG) $(MONO_CFLAGS)
-CXXFLAGS := $(DEBUG_FLAG) $(MONO_CFLAGS)
-LDFLAGS := $(MONO_LDFLAGS)
+CXXFLAGS := $(DEBUG_FLAG) $(MONO_CFLAGS) $(BOOST_FLAGS)
+LDFLAGS := $(MONO_LDFLAGS) $(BOOST_LIBS)
 
 
 # Files
@@ -44,7 +49,7 @@ LIB_FILES_DBG := $(addsuffix .mdb, $(LIB_FILES))
 all: $(OUT_FILE) $(LIB_FILES)
 
 $(OUT_FILE): $(OBJS)
-	$(LD) $(OBJS) $(LDFLAGS) -o $(OUT_FILE)
+	$(LD) -o $(OUT_FILE) $(OBJS) $(LDFLAGS)
 
 .PHONEY: clean
 clean:
