@@ -4,15 +4,46 @@
 #include <iostream>
 
 bool test_SingleObject(MonoBridge::MonoBridge *bridge) {
+
+    std::cout << ">> Testing a single library" << std::endl;
+
+    MonoObject *pt_fileiolib = bridge->Create("MonoBridgeTest", "FileIOLib");
+    if (!pt_fileiolib) {
+        return false;
+    }
+
     return true;
 }
+
 bool test_SeqSingleObject(MonoBridge::MonoBridge *bridge) {
+    std::cout << ">> Testing a single library multiple times sequtially" << std::endl;
+
+    {
+        MonoObject *pt_fileiolib1 = bridge->Create("MonoBridgeTest", "FileIOLib");
+        if (!pt_fileiolib1) {
+            return false;
+        }
+    }
+
+    {
+        MonoObject *pt_fileiolib2 = bridge->Create("MonoBridgeTest", "FileIOLib");
+        if (!pt_fileiolib2) {
+            return false;
+        }
+    }
+
     return true;
 }
+
 bool test_MultiObjectsNonConcurrent(MonoBridge::MonoBridge *bridge) {
+    std::cout << ">> Testing a multiple library sequentially" << std::endl;
+
+
     return true;
 }
+
 bool test_MultiObjectConcurrent(MonoBridge::MonoBridge *bridge) {
+    std::cout << ">> Testing a multiple library concurrently" << std::endl;
     return true;
 }
 
