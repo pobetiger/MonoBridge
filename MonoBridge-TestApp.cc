@@ -18,7 +18,7 @@ bool test_SingleObject(MonoBridge::MonoBridge *bridge) {
         port_name,
         port_desc,
     };
-    bridge->Invoke(pt_fileiolib, "Setup", params);
+    bridge->Invoke(pt_fileiolib, "Setup(string,string)", params);
 
     bridge->Invoke(pt_fileiolib, "Dispose", 0);
 
