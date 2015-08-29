@@ -12,25 +12,48 @@ bool test_SingleObject(MonoBridge::MonoBridge *bridge) {
         return false;
     }
 
+    MonoString *port_name = mono_string_new(bridge->getDomain(), "2009");
+    MonoString *port_desc = mono_string_new(bridge->getDomain(), "Use for some data writing");
+    void *params[2] = {
+        port_name,
+        port_desc,
+    };
+    bridge->Invoke(pt_fileiolib, "Setup", params);
+
+    bridge->Invoke(pt_fileiolib, "Dispose", 0);
+
     return true;
 }
 
 bool test_SeqSingleObject(MonoBridge::MonoBridge *bridge) {
-    std::cout << ">> Testing a single library multiple times sequtially" << std::endl;
+    std::cout << ">> Testing a single library multiple times sequentially" << std::endl;
 
-    {
-        MonoObject *pt_fileiolib1 = bridge->Create("MonoBridgeTest", "FileIOLib");
-        if (!pt_fileiolib1) {
-            return false;
-        }
+    MonoObject *pt_fileiolib1 = bridge->Create("MonoBridgeTest", "FileIOLib");
+    if (!pt_fileiolib1) {
+        return false;
     }
+    MonoString *port_name1 = mono_string_new(bridge->getDomain(), "2009");
+    void *params[1] = {
+        port_name1,
+    };
+    bridge->Invoke(pt_fileiolib1, "Setup", params);
 
-    {
-        MonoObject *pt_fileiolib2 = bridge->Create("MonoBridgeTest", "FileIOLib");
-        if (!pt_fileiolib2) {
-            return false;
-        }
+    bridge->Invoke(pt_fileiolib1, "Dispose", 0);
+
+    // create the second instance after we're done with the first
+
+    MonoObject *pt_fileiolib2 = bridge->Create("MonoBridgeTest", "FileIOLib");
+    if (!pt_fileiolib2) {
+        return false;
     }
+    MonoString *port_name2 = mono_string_new(bridge->getDomain(), "2009");
+    params[0] = port_name2;
+
+    bridge->Invoke(pt_fileiolib2, "Setup", params);
+
+
+    bridge->Invoke(pt_fileiolib2, "Dispose", 0);
+
 
     return true;
 }

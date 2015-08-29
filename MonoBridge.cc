@@ -10,6 +10,7 @@
 #include <mono/metadata/mono-gc.h>
 #include <mono/metadata/mono-config.h>
 #include <mono/metadata/environment.h>
+#include <mono/metadata/debug-helpers.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
@@ -159,9 +160,33 @@ MonoObject *MonoBridge::Create(std::string ns, std::string name) {
     return obj;
 }
 
-MonoObject *MonoBridge::CreateObject(
-    std::string file, std::string ns, std::string name) {
+MonoObject *MonoBridge::CreateEx(std::string file, std::string ns, std::string name) {
     return 0;
+}
+
+MonoObject *MonoBridge::Invoke(
+    MonoObject *obj,
+    std::string method_name,
+    void **params) {
+
+    // MonoMethod *method;
+    MonoObject *result;
+    MonoObject *exc = 0;
+
+    MonoClass *k = mono_object_get_class(obj);
+    // method = mono_class_get_method_from_name(k, method_name.c_str(), -1);
+
+    MonoMethodDesc *mdesc = mono_method_desc_new((":" + method_name).c_str(), false);
+    MonoMethod *method = mono_method_desc_search_in_class (mdesc, k);
+
+    // std::cout << "*** Invoking " << method_name << std::endl;
+    result = mono_runtime_invoke(method, obj, params, 0);
+    // std::cout << "** Invoking " << method_name << " complete" << std::endl;
+    if (exc) {
+        std::cout << "Exception: " << std::endl;
+    }
+
+    return result;
 }
 
 
@@ -195,6 +220,10 @@ bool MonoBridge::Stop() {
 void MonoBridge::Quit() {
     /* bring the whole thing down */
     mono_jit_cleanup(mono_domain_get());
+}
+
+MonoDomain * MonoBridge::getDomain() {
+    return domain;
 }
 
 }
