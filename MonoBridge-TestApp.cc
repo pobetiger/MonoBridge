@@ -70,6 +70,58 @@ bool test_MultiObjectConcurrent(MonoBridge::MonoBridge *bridge) {
     return true;
 }
 
+bool test_AtonOfOperations(MonoBridge::MonoBridge *bridge) {
+    std::cout << ">> Testing a ton of operations" << std::endl;
+
+    MonoObject *logger = bridge->Create("MonoBridgeTest", "Logger");
+    MonoObject *iolib = bridge->Create("MonoBridgeTest", "FileIOLib");
+
+    if (logger == 0 || iolib==0) {
+        std::cout << "Some operational library is not valid" << std::endl;
+        return false;
+    }
+
+    auto log = [=] (std::string s_msg) {
+        // std::string s_msg = "foo";
+        MonoString *o_msg = mono_string_new(bridge->getDomain(), s_msg.c_str());
+        void *params[] = {
+            o_msg,
+        };
+        bridge->Invoke(logger, "Log", params); // void, no return
+    };
+
+    auto send_io = [=] (std::string s_packet) {
+        log("Sending IO: " + s_packet);
+        MonoString *o_packet = mono_string_new(bridge->getDomain(), s_packet.c_str());
+        void *params[] = {
+            o_packet,
+        };
+        bridge->Invoke(iolib, "Write", params); // void, no return
+        log("Sending IO complete");
+    };
+
+
+    log("*** Starting up a ton of test ***");
+    log("doing some obligatory logging stuff");
+    log("system should be doing setup");
+    send_io("send startup");
+    send_io("recv");
+    send_io("wait ack");
+    int cmd_length = 1000;
+    for (int i=0; i<cmd_length; ++i) {
+        log ("cycle #" + std::to_string(i));
+        send_io("do some cmd");
+        send_io("recv");
+        send_io("wait ack");
+        log ("cycle #" + std::to_string(i) +" complte");
+    }
+    log("task complete, should do some cleanup");
+    send_io("system shutdown");
+    send_io("cleanup");
+    log("test done");
+    return true;
+}
+
 
 int main(int argc, char **argv) {
 
@@ -107,6 +159,10 @@ int main(int argc, char **argv) {
     }
     if (!test_MultiObjectConcurrent(bridge)) {
         std::cout << "FAIL: Multiple Object Concurrent Test" << std::endl;
+        return -1;
+    }
+    if (!test_AtonOfOperations(bridge)) {
+        std::cout << "FAIL: A ton of operations fail" << std::endl;
         return -1;
     }
 
