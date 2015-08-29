@@ -45,13 +45,19 @@ LIB_FILES_DBG := $(addsuffix .mdb, $(LIB_FILES))
 
 # Targets
 
-.PHONEY: all
+.PHONY: all
 all: $(OUT_FILE) $(LIB_FILES)
+
+.PHONY: bin
+bin: $(OUT_FILE)
+
+.PHONY: libs
+libs: $(LIB_FILES)
 
 $(OUT_FILE): $(OBJS)
 	$(LD) -o $(OUT_FILE) $(OBJS) $(LDFLAGS)
 
-.PHONEY: clean
+.PHONY: clean
 clean:
 	rm -fr $(OBJS) $(OUT_FILE) $(LIB_FILES) $(LIB_FILES_DBG)
 
