@@ -3,51 +3,29 @@ MonoBridge
 Goal:
 This project builds a bridge between C++ and Mono/.NET libraries.
 
-The MonoBridge allows the user to instantiate copies of Mono libraries and invoke
-various functions in it within an AppDomain from C++. I have further embedding
-of this into another framework for proprietary work and that part will not be included
-in this demo app.
+The MonoBridge allows the user to instantiate copies of Mono libraries and invoke various functions in it within an AppDomain from C++. I have further embedding of this into another framework for proprietary work and that part will not be included in this demo app.
 
 Requirements:
 - Project shall provide a class to interface with Mono libraries
-- Project shall be able to create separate AppDomain and have ability to stop/restart
-the AppDomain.
+- Project shall be able to create separate AppDomain and have ability to stop/restart the AppDomain.
 - Project shall contain test cases that demonstrate how to use the bridge class.
-- Project shall be easy to be re-embedded into other frameworks with a very small
-subset of dependencies.
+- Project shall be easy to be re-embedded into other frameworks with a very small subset of dependencies.
 
 Dependencies:
 - Mono
 - Boost (build with gcc, not llvm/clang)
 
 Background:
-The idea to do this project originated in frustrating performance of some .NET
-embedding on heavily "fortified" MS-Windows machines that seriously interfered
-with usability of my app. So I started the investigation to migrate those apps to
-Linux using Mono.
+The idea to do this project originated in frustrating performance of some .NET embedding on heavily "fortified" MS-Windows machines that seriously interfered with usability of my app. So I started the investigation to migrate those apps to Linux using Mono.
 
-The first cut of the project (not included) worked as long as there's only one
-Assembly in existence. I made the mistake of not having a robust manager for the
-AppDomain. After much searching, I finally found the DotNetConf 2015 talk done
-by Andreia Gaita. Her idea of an AppDomain loader based on the way Unity was able
-to reload all .NET "scripts" live without killing the front-end engine gave me a
-starting point to build a more robust AppDomain management class. So basing on
-    her original example code found here:
+The first cut of the project (not included) worked as long as there's only one Assembly in existence. I made the mistake of not having a robust manager for the AppDomain. After much searching, I finally found the DotNetConf 2015 talk done by Andreia Gaita. Her idea of an AppDomain loader based on the way Unity was able to reload all .NET "scripts" live without killing the front-end engine gave me a starting point to build a more robust AppDomain management class. So basing on her original example code found here:
         https://github.com/shana/mono-embedding
     and presentation at:
         https://www.youtube.com/watch?v=cozTW9IG1n0
-I started working on a Application boostrape loader. Although significant changes
-were made to the original concept to make the Mono Embedding framework to be fully
- functional from the original project posted on github.
+I started working on a Application boostrape loader. Although significant changes were made to the original concept to make the Mono Embedding framework to be fully  functional from the original project posted on github.
 
-To save time, boost is used to deal with filesystem and regex needs. This project
-is intended for the Linux and Mac OS X platform. Not sure if it will work on windows.
-For OS X, boost is installed with MacPort but build with gcc-4.8 instead of clang/llvm.
-This will resolve the libc++ vs libstdc++ conflict; building this way also keeps
-compatibility between OS X and Linux side.
+To save time, boost is used to deal with filesystem and regex needs. This project is intended for the Linux and Mac OS X platform. Not sure if it will work on windows. For OS X, boost is installed with MacPort but build with gcc-4.8 instead of clang/llvm. This will resolve the libc++ vs libstdc++ conflict; building this way also keeps compatibility between OS X and Linux side.
 
-The main Makefile will build everything from the test code to the C# test libraries.
-The test libraries contains a logger and a "file io" simulation library.
+The main Makefile will build everything from the test code to the C# test libraries. The test libraries contains a logger and a "file io" simulation library.
 
-Further tests will also include some simulated thread activities to further test
-out the reliability of the bridge.
+Further tests will also include some simulated thread activities to further test out the reliability of the bridge.
