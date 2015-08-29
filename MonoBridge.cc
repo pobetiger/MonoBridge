@@ -164,20 +164,48 @@ MonoObject *MonoBridge::CreateEx(std::string file, std::string ns, std::string n
     return 0;
 }
 
+// static std::string buildSignature(MonoSignature *sig) {
+//     std::string result = "(";
+//
+//     result += ")";
+//     return result;
+// }
+
+static void print_methods(MonoClass *k) {
+    std::cout << "Getting a listing of methods:" << std::endl;
+    void *iter = 0;
+    MonoMethod *m;
+    while ((m = mono_class_get_methods(k, &iter))) {
+        std::string theName(mono_method_get_name(m));
+        MonoMethodSignature *sig = mono_method_signature(m);
+        std::string theSig(mono_signature_get_desc(sig, false));
+
+        std::cout << " --> Found Method: " << theName << "(" << theSig << ")" << std::endl;
+    }
+}
+
 MonoObject *MonoBridge::Invoke(
     MonoObject *obj,
     std::string method_name,
     void **params) {
 
     // MonoMethod *method;
-    MonoObject *result;
+    MonoObject *result = 0;
     MonoObject *exc = 0;
 
     MonoClass *k = mono_object_get_class(obj);
-    // method = mono_class_get_method_from_name(k, method_name.c_str(), -1);
 
+    // print_methods(k);
     MonoMethodDesc *mdesc = mono_method_desc_new((":" + method_name).c_str(), false);
+    if (!mdesc) {
+        std::cout << "unable to find method desc: " << method_name << std::endl;
+        return 0;
+    }
     MonoMethod *method = mono_method_desc_search_in_class (mdesc, k);
+    if (!method) {
+        std::cout << "unable to find method: " << method_name << std::endl;
+        return 0;
+    }
 
     // std::cout << "*** Invoking " << method_name << std::endl;
     result = mono_runtime_invoke(method, obj, params, 0);
