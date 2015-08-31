@@ -12,6 +12,9 @@
 #include <mono/metadata/environment.h>
 #include <mono/metadata/debug-helpers.h>
 
+// this is internal?
+//#include <mono/metadata/threads-types.h>
+
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 
@@ -19,35 +22,6 @@ namespace MonoBridge {
 
 static bool isDll(std::string file);
 static std::vector<char> readFile(std::string filename);
-
-void MonoBridge::Initialize() {
-
-    mono_config_parse(NULL); /* default mono path */
-
-    /* root domain, holds corlib */
-    mono_jit_init_version("MonoBridge", "v4.0.30319");
-
-    // for soft debugger
-    mono_thread_set_main(mono_thread_current());
-}
-
-bool MonoBridge::Launch() {
-    MonoDomain *nextDomain =
-        mono_domain_create_appdomain((char*)"MonoBridge-sub", NULL);
-
-    if (!nextDomain) {
-        return false;
-    }
-
-    // mono_thread_push_appdomain_ref(nextDomain);
-
-    if (!mono_domain_set(nextDomain, false)) {
-        return false;
-    }
-
-    domain = nextDomain;
-    return true;
-}
 
 static std::vector<char> readFile(std::string filename) {
     std::ifstream myfile(filename.c_str(), std::ios::binary|std::ios::ate);
@@ -59,6 +33,59 @@ static std::vector<char> readFile(std::string filename) {
 
     return result;
 }
+
+static void print_methods(MonoClass *k) {
+    std::cout << "Getting a listing of methods:" << std::endl;
+    void *iter = 0;
+    MonoMethod *m;
+    while ((m = mono_class_get_methods(k, &iter))) {
+        std::string theName(mono_method_get_name(m));
+        MonoMethodSignature *sig = mono_method_signature(m);
+        std::string theSig(mono_signature_get_desc(sig, false));
+
+        std::cout << " --> Found Method: " << theName << "(" << theSig << ")" << std::endl;
+    }
+}
+
+
+void MonoBridge::Initialize() {
+
+    mono_config_parse(NULL); /* default mono path */
+
+    /* root domain, holds corlib */
+    mono_jit_init_version("MonoBridge", "v4.0.30319");
+
+    // for soft debugger
+    mono_thread_set_main(mono_thread_current());
+    isLoaded = false;
+}
+
+bool MonoBridge::Launch() {
+
+    if (isLoaded) {
+        this->Stop();
+    }
+
+    MonoDomain *nextDomain =
+        mono_domain_create_appdomain((char*)"MonoBridge-sub", NULL);
+
+    if (!nextDomain) {
+        return false;
+    }
+
+    // above 3.12
+    // mono_thread_push_appdomain_ref(nextDomain);
+
+    if (!mono_domain_set(nextDomain, false)) {
+        return false;
+    }
+
+    domain = nextDomain;
+    isLoaded = true;
+    return true;
+}
+
+
 
 bool MonoBridge::LoadAssembly(std::string file) {
     std::cout << "Loading assembly: " << file;
@@ -88,8 +115,9 @@ bool MonoBridge::LoadAssembly(std::string file) {
         return false;
     }
 
-    auto image_pair = std::make_pair(file, image);
-    images.insert(image_pair);
+    // auto image_pair = std::make_pair(file, image);
+    // images.insert(image_pair);
+    // assemblies.push_back(assembly);
 
     std::cout << " *LOADED*" << std::endl;
 
@@ -139,6 +167,7 @@ MonoObject *MonoBridge::Create(std::string ns, std::string name) {
     MonoAssemblyName *aname = mono_assembly_name_new (full_name.c_str());
     MonoAssembly *assm = mono_assembly_loaded(aname);
     if (!assm) {
+        mono_free(aname);
         std::cout << "asm/class not found" << std::endl;
         return 0;
     }
@@ -146,42 +175,29 @@ MonoObject *MonoBridge::Create(std::string ns, std::string name) {
     auto img = mono_assembly_get_image(assm);
     MonoClass *k = mono_class_from_name(img, ns.c_str(), name.c_str());
     if (!k) {
+        mono_free(img);
+        mono_free(aname);
+        // mono_free(assm);
         std::cout << "class not found" << std::endl;
         return 0;
     }
+    mono_free(aname);
 
     auto obj = mono_object_new(domain, k);
     if (!obj) {
+        mono_free(img);
+        mono_free(aname);
+        mono_free(k);
         std::cout << "unable to create class " << ns << "." << name << std::endl;
     }
-
     mono_runtime_object_init(obj);
-    // instances.push_back(obj);
+    instances.push_back(obj);
+
     return obj;
 }
 
 MonoObject *MonoBridge::CreateEx(std::string file, std::string ns, std::string name) {
     return 0;
-}
-
-// static std::string buildSignature(MonoSignature *sig) {
-//     std::string result = "(";
-//
-//     result += ")";
-//     return result;
-// }
-
-static void print_methods(MonoClass *k) {
-    std::cout << "Getting a listing of methods:" << std::endl;
-    void *iter = 0;
-    MonoMethod *m;
-    while ((m = mono_class_get_methods(k, &iter))) {
-        std::string theName(mono_method_get_name(m));
-        MonoMethodSignature *sig = mono_method_signature(m);
-        std::string theSig(mono_signature_get_desc(sig, false));
-
-        std::cout << " --> Found Method: " << theName << "(" << theSig << ")" << std::endl;
-    }
 }
 
 MonoObject *MonoBridge::Invoke(
@@ -203,6 +219,7 @@ MonoObject *MonoBridge::Invoke(
     }
     MonoMethod *method = mono_method_desc_search_in_class (mdesc, k);
     if (!method) {
+        mono_free(mdesc);
         std::cout << "unable to find method: " << method_name << std::endl;
         return 0;
     }
@@ -214,17 +231,25 @@ MonoObject *MonoBridge::Invoke(
         std::cout << "Exception: " << std::endl;
     }
 
+    mono_free(mdesc);
+
     return result;
 }
 
 
 bool MonoBridge::Stop() {
 
+    instances.clear();
+    // images.clear();
+
+
     // NOTE: do not try to close all the opened images
     //       that will cause the domain unload to crash because
-    //       the images have already been closed
+    //       the images have already been closed (double free)
 
     /* TODO: finalize instances of objects */
+    for (unsigned int i=0; i<instances.size(); ++i) {
+    }
 
     /* unload the app domain */
     MonoDomain *old = mono_domain_get();
@@ -237,8 +262,15 @@ bool MonoBridge::Stop() {
         }
 
         // std::cout << "Attempting to free current AppDomain" << std::endl;
+        // mono 3.12 above
+        // mono_thread_pop_appdomain_ref();
         mono_domain_unload(old);
+        old = 0;
+        isLoaded = false;
         // std::cout << "Domain unloaded" << std::endl;
+    } else {
+        std::cout << "Attempting to stop root domain, no can do" << std::endl;
+        return false;
     }
 
     return true;

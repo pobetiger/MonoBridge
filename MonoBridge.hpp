@@ -33,8 +33,10 @@ public:
 
 
 private:
+    bool isLoaded;
     MonoDomain *domain;
-    std::map< std::string, MonoImage* > images;
+    // std::vector< MonoAssembly * > assemblies;
+    // std::map< std::string, MonoImage* > images;
     std::vector< MonoObject* > instances;
 };
 
