@@ -122,28 +122,29 @@ bool test_AtonOfOperations(MonoBridge::MonoBridge *bridge) {
     return true;
 }
 
+static bool test_leaky(MonoBridge::MonoBridge *bridge) {
+    std::cout << ">> Testing a ton of operations" << std::endl;
+    std::vector< MonoObject* > manyObjects;
 
-int main(int argc, char **argv) {
+    std::cout << "Press key when ready to start" << std::endl;
+    std::cin.ignore();
 
-    std::string path = "./";
-    if (argc >= 2) {
-        path = argv[1];
+    MonoObject *nonsuch = bridge->Create("MonoBridgeTest", "FileIOlib");
+
+    for (int i=0;i<10000; i++) {
+        MonoObject *iolib = bridge->Create("MonoBridgeTest", "FileIOLib");
+        manyObjects.push_back(iolib);
     }
+    std::cout << "Press key when ready" << std::endl;
+    std::cin.ignore();
 
-    MonoBridge::MonoBridge *bridge = new MonoBridge::MonoBridge();
+    std::cout << "Press key when ready again" << std::endl;
+    std::cin.ignore();
 
-    std::cout << "Initializing application" << std::endl;
-    bridge->Initialize();
+    return true;
+}
 
-    std::cout << "Launching application" << std::endl;
-    bridge->Launch();
-
-    std::cout << "Loading assemblies from path: " << path << std::endl;
-    if (bridge->LoadAssemblyPath(path) == 0) {
-        std::cout << "FAIL: no library can be loaded" << std::endl;
-        return -1;
-    }
-
+int runTest(MonoBridge::MonoBridge *bridge) {
     /* run the test */
     if (!test_SingleObject(bridge)) {
         std::cout << "FAIL: Single Object Test" << std::endl;
@@ -165,14 +166,75 @@ int main(int argc, char **argv) {
         std::cout << "FAIL: A ton of operations fail" << std::endl;
         return -1;
     }
+    if (!test_leaky(bridge)) {
+        std::cout << "FAIL: leaky test fail" << std::endl;
+        return -1;
+    }
+    return 0;
+}
 
-    std::cout << "All Tests Passed!" << std::endl;
+int main(int argc, char **argv) {
 
-    std::cout << "Stopping application" << std::endl;
-    bridge->Stop();
+    std::string path = "./";
+    if (argc >= 2) {
+        path = argv[1];
+    }
 
-    std::cout << "Cleaning up" << std::endl;
-    bridge->Quit();
+    MonoBridge::MonoBridge *bridge = new MonoBridge::MonoBridge();
+
+    std::cout << "Initializing application" << std::endl;
+    bridge->Initialize();
+
+    bool isRunning = true;
+
+    do {
+        std::string s_nextstep;
+        std::cout << "Action? ";
+        std::cin >> s_nextstep;
+
+        if (s_nextstep == "q") {
+            bridge->Stop();
+            isRunning = false;
+            break;
+        } else if (s_nextstep == "l") {
+            std::cout << "Launching application" << std::endl;
+            bridge->Launch();
+
+            std::cout << "Loading assemblies from path: " << path << std::endl;
+            if (bridge->LoadAssemblyPath(path) == 0) {
+                std::cout << "FAIL: no library can be loaded" << std::endl;
+                // TODO: maybe let user specify path instead
+                bridge->Stop();
+                break;
+            }
+        } else if (s_nextstep == "r") {
+            if (runTest(bridge) < 0) {
+                std::cout << "Test failed, back to command prompt" << std::endl;
+            } else {
+                std::cout << "All Tests Passed!" << std::endl;
+            }
+        } else if (s_nextstep == "s") {
+            std::cout << "Stopping bridge" << std::endl;
+            bridge->Stop();
+        } else if (s_nextstep == "k") {
+            std::cout << "Stopping bridge" << std::endl;
+            bridge->Stop();
+            std::cout << "Cleaning up" << std::endl;
+            bridge->Quit();
+            free(bridge);
+            bridge = 0;
+        } else {
+            std::cout << "unimplemented command" << std::endl;
+        }
+
+    } while (isRunning);
+
+    if (bridge) {
+        std::cout << "Cleaning up" << std::endl;
+        bridge->Quit();
+        free(bridge);
+        bridge = 0;
+    }
 
     return 0;
 }
