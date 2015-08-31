@@ -20,7 +20,7 @@ BOOST_LIBS := -lboost_system-mt -lboost_filesystem-mt -lboost_regex-mt
 
 CFLAGS := $(DEBUG_FLAG) $(MONO_CFLAGS)
 CXXFLAGS := $(DEBUG_FLAG) $(MONO_CFLAGS) $(BOOST_FLAGS)
-LDFLAGS := $(MONO_LDFLAGS) $(BOOST_LIBS)
+LDFLAGS := $(MONO_LDFLAGS) $(BOOST_LIBS) $(BOOST_FLAGS)
 
 
 # Files
@@ -39,7 +39,8 @@ OBJS := $(SRCS:%.cc=%.o)
 
 CS_SRCS :=
 CS_SRCS += lib/FileIOLib.cs \
-			lib/Logger.cs
+			lib/Logger.cs \
+			lib/LargeMem.cs
 
 LIB_FILES := $(CS_SRCS:%.cs=%.dll)
 LIB_FILES_DBG := $(addsuffix .mdb, $(LIB_FILES))
